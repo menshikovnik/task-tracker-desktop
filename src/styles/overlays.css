@@ -1,0 +1,157 @@
+.context-menu {
+  position: fixed;
+  z-index: 40;
+  min-width: 160px;
+  padding: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+}
+
+.context-menu__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-align: left;
+  color: rgba(255, 255, 255, 0.82);
+  background: transparent;
+}
+
+.context-menu__item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.context-menu__item--danger {
+  color: #fca5a5;
+}
+
+.context-menu__item--danger:hover:not(:disabled) {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.context-menu__item:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 9, 11, 0.6);
+  backdrop-filter: blur(10px);
+  animation: modalBackdropIn 0.18s ease;
+}
+
+.modal-backdrop.is-closing {
+  animation: modalBackdropOut 0.16s ease forwards;
+}
+
+.modal-card {
+  width: min(100%, 540px);
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background: #141418;
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.4);
+  transform-origin: center;
+  animation: modalCardIn 0.2s ease;
+}
+
+.modal-card.is-closing {
+  animation: modalCardOut 0.16s ease forwards;
+}
+
+.modal-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.modal-close-button {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modal-close-button:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.modal-close-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.modal-card--confirm {
+  width: min(100%, 420px);
+}
+
+.confirm-copy {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.68);
+  line-height: 1.6;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.confirm-action-button {
+  min-width: 88px;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 12px;
+  border-radius: 10px;
+  font-size: 12px;
+  line-height: 1;
+  transition: all 0.15s ease;
+}
+
+.confirm-action-button--neutral {
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.confirm-action-button--neutral:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.confirm-action-button--danger {
+  color: #fff;
+  background: rgba(239, 68, 68, 0.86);
+}
+
+.confirm-action-button--danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.96);
+}
+
+.confirm-action-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

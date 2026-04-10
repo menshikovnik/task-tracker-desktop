@@ -1,0 +1,252 @@
+.auth-form,
+.task-form {
+  display: grid;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.auth-form label,
+.task-form label,
+.detail-field {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.auth-form input,
+.task-form input,
+.task-form textarea,
+.task-form select,
+.detail-field select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.04);
+  outline: none;
+}
+
+.task-form select,
+.detail-field select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 40px;
+  background-color: rgba(255, 255, 255, 0.04);
+  background-image:
+    linear-gradient(45deg, transparent 50%, rgba(255, 255, 255, 0.52) 50%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.52) 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 1px),
+    calc(100% - 12px) calc(50% - 1px);
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+}
+
+.task-form select:hover,
+.detail-field select:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.task-form select option,
+.detail-field select option {
+  color: rgba(255, 255, 255, 0.92);
+  background: #16161c;
+}
+
+.modal-card .task-form select {
+  border-color: rgba(255, 255, 255, 0.07);
+  border-radius: 12px;
+  padding: 11px 40px 11px 14px;
+  background-color: rgba(255, 255, 255, 0.035);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background-image: none;
+}
+
+.modal-card .task-form select:hover {
+  border-color: rgba(255, 255, 255, 0.12);
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.modal-card .task-form select:focus {
+  border-color: rgba(99, 102, 241, 0.45);
+  background-color: rgba(99, 102, 241, 0.08);
+  box-shadow:
+    0 0 0 3px rgba(99, 102, 241, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.modal-card .task-form label:has(select) {
+  position: relative;
+}
+
+.modal-card .task-form label:has(select)::after {
+  content: "";
+  position: absolute;
+  right: 14px;
+  bottom: 15px;
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.38);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.38);
+  transform: rotate(45deg);
+  pointer-events: none;
+}
+
+.custom-select {
+  position: relative;
+}
+
+.custom-select__trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.025));
+  color: rgba(255, 255, 255, 0.92);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.custom-select__trigger:hover {
+  border-color: rgba(255, 255, 255, 0.11);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.048), rgba(255, 255, 255, 0.03));
+}
+
+.custom-select.is-open .custom-select__trigger {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow:
+    0 0 0 2px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  background:
+    linear-gradient(180deg, rgba(99, 102, 241, 0.08), rgba(255, 255, 255, 0.03));
+}
+
+.custom-select__chevron {
+  width: 8px;
+  height: 8px;
+  border-right: 1.5px solid rgba(255, 255, 255, 0.4);
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.4);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  margin-top: -2px;
+}
+
+.custom-select.is-open .custom-select__chevron {
+  transform: rotate(225deg);
+  margin-top: 2px;
+}
+
+.custom-select__menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  background: rgba(20, 20, 24, 0.98);
+  box-shadow:
+    0 18px 40px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px);
+}
+
+.custom-select__option {
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: rgba(255, 255, 255, 0.8);
+  background: transparent;
+}
+
+.custom-select__option + .custom-select__option {
+  margin-top: 4px;
+}
+
+.custom-select__option:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.custom-select__option.is-selected {
+  color: #c7cbff;
+  background: rgba(99, 102, 241, 0.14);
+}
+
+.auth-form input:focus,
+.task-form input:focus,
+.task-form textarea:focus,
+.task-form select:focus,
+.detail-field select:focus {
+  border-color: rgba(99, 102, 241, 0.45);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.12);
+}
+
+.task-form textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.task-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.primary-button,
+.ghost-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.primary-button {
+  padding: 6px 14px;
+  border-radius: 7px;
+  font-size: 13px;
+  color: white;
+  background: #6366f1;
+}
+
+.primary-button--modal {
+  min-height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.primary-button:hover {
+  background: #7275ff;
+}
+
+.ghost-button {
+  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.ghost-button:hover {
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.ghost-button--compact {
+  padding: 8px 12px;
+  border: 0.5px solid rgba(99, 102, 241, 0.2);
+  background: rgba(99, 102, 241, 0.08);
+}

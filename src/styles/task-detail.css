@@ -1,0 +1,243 @@
+.detail-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.detail-pill {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.detail-pill:hover:not(:disabled) {
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.detail-pill:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.detail-pill.is-active {
+  color: #fff;
+}
+
+.detail-pill--open.is-active {
+  background: rgba(59, 130, 246, 0.24);
+  color: #93c5fd;
+}
+
+.detail-pill--in_progress.is-active {
+  background: rgba(249, 115, 22, 0.24);
+  color: #fdba74;
+}
+
+.detail-pill--done.is-active {
+  background: rgba(34, 197, 94, 0.22);
+  color: #86efac;
+}
+
+.detail-pill--cancelled.is-active {
+  background: rgba(107, 114, 128, 0.28);
+  color: #d1d5db;
+}
+
+.detail-pill--low.is-active {
+  background: rgba(34, 197, 94, 0.14);
+  color: #86efac;
+}
+
+.detail-pill--medium.is-active {
+  background: rgba(234, 179, 8, 0.24);
+  color: #fde68a;
+}
+
+.detail-pill--high.is-active {
+  background: rgba(239, 68, 68, 0.22);
+  color: #fca5a5;
+}
+
+.detail-view {
+  grid-column: 2 / 3;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  flex: 1;
+  animation: fadeSlideIn 0.18s ease;
+}
+
+.detail-scrollable {
+  flex: 1;
+  overflow-y: auto;
+  padding: 40px 48px;
+  scrollbar-gutter: stable;
+}
+
+.detail-content-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.detail-back {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 0 24px;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+  margin-left: -6px;
+}
+
+.detail-back:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.detail-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.detail-priority-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.detail-priority-dot--high {
+  background: #f87171;
+}
+
+.detail-priority-dot--medium {
+  background: #fb923c;
+}
+
+.detail-priority-dot--low {
+  background: #9ca3af;
+}
+
+.detail-meta-separator {
+  color: rgba(255, 255, 255, 0.28);
+}
+
+.detail-date {
+  margin-left: 0;
+}
+
+.detail-title-input {
+  width: 100%;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #ffffff;
+  font-size: 26px;
+  font-weight: 600;
+  outline: none;
+}
+
+.detail-divider {
+  width: 100%;
+  margin: 16px 0;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.detail-description-input {
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  resize: none;
+  overflow: hidden;
+  outline: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.detail-description-input::placeholder {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.detail-footer {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 10px 48px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: #1a1a1f;
+}
+
+.footer-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.footer-label,
+.detail-empty .eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.footer-label {
+  margin-right: 4px;
+}
+
+.footer-separator {
+  width: 1px;
+  height: 16px;
+  margin: 0 16px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.footer-delete-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  font-size: 11px;
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.footer-delete-button:hover:not(:disabled) {
+  color: #fecaca;
+  background: rgba(239, 68, 68, 0.18);
+}
+
+.footer-delete-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.detail-empty {
+  max-width: 720px;
+  margin: 0 auto;
+  display: grid;
+  gap: 10px;
+  padding-top: 8px;
+}
+
+.detail-empty p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.52);
+}

@@ -1,0 +1,70 @@
+.auth-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.22), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(99, 102, 241, 0.1), transparent 28%),
+    #1a1a1f;
+}
+
+.auth-card {
+  position: relative;
+  width: min(100%, 440px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(27, 27, 34, 0.98), rgba(20, 20, 24, 0.96));
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.auth-card__glow {
+  position: absolute;
+  inset: -20% 35% auto -20%;
+  height: 220px;
+  background: rgba(99, 102, 241, 0.2);
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.auth-card__content {
+  position: relative;
+  padding: 36px;
+}
+
+.auth-card h1,
+.modal-card h3 {
+  margin: 8px 0 0;
+}
+
+.auth-card h1 {
+  font-size: 28px;
+  line-height: 1.2;
+}
+
+.auth-subtitle {
+  margin: 14px 0 24px;
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  padding: 6px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.auth-tabs button {
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, 0.68);
+  background: transparent;
+}
+
+.auth-tabs button.is-active {
+  color: #dfe1ff;
+  background: rgba(99, 102, 241, 0.15);
+}
