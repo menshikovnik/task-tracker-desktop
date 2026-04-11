@@ -19,4 +19,5 @@ export type TaskFormState = {
 export type AppFeedback = {
   title: string;
   message: string;
+  tone?: "error" | "success";
 };

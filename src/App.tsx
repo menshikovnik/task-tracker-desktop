@@ -37,7 +37,9 @@ function App() {
   const [taskLoading, setTaskLoading] = useState(false);
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [taskModalClosing, setTaskModalClosing] = useState(false);
+  const [taskCreateSuccess, setTaskCreateSuccess] = useState(false);
   const [taskSaving, setTaskSaving] = useState(false);
+  const [createdTaskId, setCreatedTaskId] = useState<number | null>(null);
   const [detailSaving, setDetailSaving] = useState(false);
   const [deleteSaving, setDeleteSaving] = useState(false);
   const [deleteConfirmTaskId, setDeleteConfirmTaskId] = useState<number | null>(null);
@@ -47,8 +49,10 @@ function App() {
     y: number;
   } | null>(null);
   const [feedback, setFeedback] = useState<AppFeedback | null>(null);
+  const [feedbackClosing, setFeedbackClosing] = useState(false);
   const [authForm, setAuthForm] = useState({
     username: "",
+    email: "",
     password: "",
     confirmPassword: "",
   });
@@ -98,16 +102,54 @@ function App() {
   }, [taskModalClosing]);
 
   useEffect(() => {
+    if (!taskCreateSuccess) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setTaskCreateSuccess(false);
+      setTaskModalClosing(true);
+    }, 520);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [taskCreateSuccess]);
+
+  useEffect(() => {
     if (!feedback) {
       return;
     }
 
     const timeoutId = window.setTimeout(() => {
-      setFeedback(null);
+      dismissFeedback();
     }, 4500);
 
     return () => window.clearTimeout(timeoutId);
   }, [feedback]);
+
+  useEffect(() => {
+    if (!feedbackClosing) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setFeedback(null);
+      setFeedbackClosing(false);
+    }, 180);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [feedbackClosing]);
+
+  useEffect(() => {
+    if (!createdTaskId) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setCreatedTaskId(null);
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [createdTaskId]);
 
   useEffect(() => {
     function closeContextMenu() {
@@ -202,6 +244,7 @@ function App() {
       } else {
         await registerUser({
           username: authForm.username,
+          email: authForm.email,
           password: authForm.password,
           confirmPassword: authForm.confirmPassword,
         });
@@ -212,7 +255,7 @@ function App() {
       }
 
       setUser(authForm.username);
-      setAuthForm({ username: "", password: "", confirmPassword: "" });
+      setAuthForm({ username: "", email: "", password: "", confirmPassword: "" });
     } catch (error) {
       handleAppError(error);
     } finally {
@@ -254,14 +297,24 @@ function App() {
       });
 
       setTaskForm(EMPTY_TASK_FORM);
-      setTaskModalClosing(false);
-      setTaskModalOpen(false);
+      setTaskCreateSuccess(true);
 
       if (createdTask) {
         setTasks((currentTasks) => [createdTask, ...currentTasks]);
         setSelectedTaskId(createdTask.id);
+        setCreatedTaskId(createdTask.id);
+        setFeedback({
+          title: "Task created",
+          message: `"${createdTask.title}" is now in your queue.`,
+          tone: "success",
+        });
       } else {
         await loadTasks();
+        setFeedback({
+          title: "Task created",
+          message: "Your task was created successfully.",
+          tone: "success",
+        });
       }
     } catch (error) {
       handleAppError(error);
@@ -298,6 +351,55 @@ function App() {
       handleAppError(error);
     } finally {
       setDetailSaving(false);
+    }
+  }
+
+  async function handleQuickComplete(taskId: number) {
+    const task = tasks.find((item) => item.id === taskId);
+    if (!task) {
+      return;
+    }
+
+    const nextStatus: Status = task.status === "DONE" ? "OPEN" : "DONE";
+    const nextTask: Task = {
+      ...task,
+      status: nextStatus,
+    };
+
+    const previousTasks = tasks;
+
+    setTasks((currentTasks) =>
+      currentTasks
+        .map((item) => (item.id === taskId ? nextTask : item))
+        .filter((item) => matchesActiveFilter(item, activeFilter)),
+    );
+
+    try {
+      const updatedTask = await updateTask(taskId, {
+        title: nextTask.title,
+        description: nextTask.description,
+        priority: nextTask.priority,
+        status: nextTask.status,
+      });
+
+      setTasks((currentTasks) => {
+        const merged = currentTasks.some((item) => item.id === updatedTask.id)
+          ? currentTasks.map((item) => (item.id === updatedTask.id ? updatedTask : item))
+          : [...currentTasks, updatedTask];
+
+        return merged.filter((item) => matchesActiveFilter(item, activeFilter));
+      });
+      setFeedback({
+        title: nextStatus === "DONE" ? "Task completed" : "Task reopened",
+        message:
+          nextStatus === "DONE"
+            ? `"${updatedTask.title}" moved to Completed.`
+            : `"${updatedTask.title}" moved back to Open.`,
+        tone: "success",
+      });
+    } catch (error) {
+      setTasks(previousTasks);
+      handleAppError(error);
     }
   }
 
@@ -338,6 +440,7 @@ function App() {
 
   function openTaskModal() {
     setFeedback(null);
+    setTaskCreateSuccess(false);
     setTaskModalClosing(false);
     setTaskModalOpen(true);
   }
@@ -347,6 +450,7 @@ function App() {
       return;
     }
 
+    setTaskCreateSuccess(false);
     setTaskModalClosing(true);
   }
 
@@ -416,10 +520,11 @@ function App() {
         clearUser();
         setTasks([]);
         setSelectedTaskId(null);
-        setFeedback({
-          title: "Session expired",
-          message: "Please sign in again to continue working.",
-        });
+      setFeedback({
+        title: "Session expired",
+        message: "Please sign in again to continue working.",
+        tone: "error",
+      });
         return;
       }
 
@@ -429,6 +534,7 @@ function App() {
         setFeedback({
           title: "Can't connect to the server",
           message: "Make sure the Spring backend is running and reachable from the app.",
+          tone: "error",
         });
         return;
       }
@@ -437,6 +543,7 @@ function App() {
         setFeedback({
           title: "Sign in failed",
           message: "Check your username and password and try again.",
+          tone: "error",
         });
         return;
       }
@@ -445,6 +552,7 @@ function App() {
         setFeedback({
           title: "Access denied",
           message: "You don't have permission to perform this action.",
+          tone: "error",
         });
         return;
       }
@@ -453,6 +561,7 @@ function App() {
         setFeedback({
           title: "Not found",
           message: "That item could not be found.",
+          tone: "error",
         });
         return;
       }
@@ -460,6 +569,7 @@ function App() {
       setFeedback({
         title: "Something went wrong",
         message: error.message,
+        tone: "error",
       });
       return;
     }
@@ -467,7 +577,16 @@ function App() {
     setFeedback({
       title: "Something went wrong",
       message: "Please try again.",
+      tone: "error",
     });
+  }
+
+  function dismissFeedback() {
+    if (!feedback || feedbackClosing) {
+      return;
+    }
+
+    setFeedbackClosing(true);
   }
 
   function handleTaskFormChange<K extends keyof TaskFormState>(field: K, value: TaskFormState[K]) {
@@ -475,7 +594,7 @@ function App() {
   }
 
   function handleAuthFormChange(
-    field: "username" | "password" | "confirmPassword",
+    field: "username" | "email" | "password" | "confirmPassword",
     value: string,
   ) {
     setAuthForm((current) => ({ ...current, [field]: value }));
@@ -488,7 +607,9 @@ function App() {
   if (!user) {
     return (
       <>
-        {feedback ? <FeedbackToast feedback={feedback} onDismiss={() => setFeedback(null)} /> : null}
+        {feedback ? (
+          <FeedbackToast closing={feedbackClosing} feedback={feedback} onDismiss={dismissFeedback} />
+        ) : null}
         <AuthScreen
           authForm={authForm}
           authLoading={authLoading}
@@ -503,7 +624,9 @@ function App() {
 
   return (
     <>
-      {feedback ? <FeedbackToast feedback={feedback} onDismiss={() => setFeedback(null)} /> : null}
+      {feedback ? (
+        <FeedbackToast closing={feedbackClosing} feedback={feedback} onDismiss={dismissFeedback} />
+      ) : null}
       <main className="app-shell">
         <Sidebar
           activeFilter={activeFilter}
@@ -515,6 +638,7 @@ function App() {
         {view === "list" ? (
           <TaskListView
             activeFilter={activeFilter}
+            createdTaskId={createdTaskId}
             groupedTasks={groupedTasks}
             hoveredTaskId={hoveredTaskId}
             onFilterChange={setActiveFilter}
@@ -522,6 +646,7 @@ function App() {
             onOpenContextMenu={(taskId, x, y) => setContextMenu({ taskId, x, y })}
             onOpenTask={handleTaskOpen}
             onOpenTaskModal={openTaskModal}
+            onQuickComplete={(taskId) => void handleQuickComplete(taskId)}
             taskLoading={taskLoading}
           />
         ) : (
@@ -551,6 +676,7 @@ function App() {
         onTaskFormChange={handleTaskFormChange}
         open={taskModalOpen}
         taskForm={taskForm}
+        taskCreateSuccess={taskCreateSuccess}
         taskSaving={taskSaving}
       />
 
@@ -574,3 +700,18 @@ function App() {
 }
 
 export default App;
+
+function matchesActiveFilter(task: Task, activeFilter: TaskFilter) {
+  switch (activeFilter) {
+    case "OPEN":
+    case "IN_PROGRESS":
+    case "DONE":
+    case "CANCELLED":
+      return task.status === activeFilter;
+    case "HIGH_PRIORITY":
+      return task.priority === "HIGH";
+    case "ALL":
+    default:
+      return true;
+  }
+}

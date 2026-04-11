@@ -1,5 +1,5 @@
 import { FormEvent } from "react";
-import { X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Priority, Status } from "../api";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS } from "../app/constants";
 import { formatPriority, formatStatus } from "../app/formatters";
@@ -9,6 +9,7 @@ import { CustomSelect } from "./CustomSelect";
 type NewTaskModalProps = {
   open: boolean;
   closing: boolean;
+  taskCreateSuccess: boolean;
   taskSaving: boolean;
   taskForm: TaskFormState;
   onClose: () => void;
@@ -19,6 +20,7 @@ type NewTaskModalProps = {
 export function NewTaskModal({
   open,
   closing,
+  taskCreateSuccess,
   taskSaving,
   taskForm,
   onClose,
@@ -36,7 +38,13 @@ export function NewTaskModal({
       role="presentation"
     >
       <section
-        className={closing ? "modal-card is-closing" : "modal-card"}
+        className={[
+          "modal-card",
+          closing ? "is-closing" : "",
+          taskCreateSuccess ? "is-success" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
         onClick={(event) => event.stopPropagation()}
         role="dialog"
       >
@@ -102,7 +110,16 @@ export function NewTaskModal({
           </div>
 
           <button className="primary-button primary-button--modal" disabled={taskSaving} type="submit">
-            {taskSaving ? "Creating..." : "Create task"}
+            {taskCreateSuccess ? (
+              <>
+                <Check size={14} />
+                Created
+              </>
+            ) : taskSaving ? (
+              "Creating..."
+            ) : (
+              "Create task"
+            )}
           </button>
         </form>
       </section>

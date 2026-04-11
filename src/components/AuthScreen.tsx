@@ -6,12 +6,13 @@ type AuthScreenProps = {
   authLoading: boolean;
   authForm: {
     username: string;
+    email: string;
     password: string;
     confirmPassword: string;
   };
   onModeChange: (mode: AuthMode) => void;
   onAuthFormChange: (
-    field: "username" | "password" | "confirmPassword",
+    field: "username" | "email" | "password" | "confirmPassword",
     value: string,
   ) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
@@ -56,14 +57,27 @@ export function AuthScreen({
 
           <form className="auth-form" onSubmit={onSubmit}>
             <label>
-              Username
+              {authMode === "login" ? "Username or email" : "Username"}
               <input
-                autoComplete="username"
+                autoComplete={authMode === "login" ? "username" : "username"}
                 onChange={(event) => onAuthFormChange("username", event.target.value)}
                 required
                 value={authForm.username}
               />
             </label>
+
+            {authMode === "register" ? (
+              <label>
+                Email
+                <input
+                  autoComplete="email"
+                  onChange={(event) => onAuthFormChange("email", event.target.value)}
+                  required
+                  type="email"
+                  value={authForm.email}
+                />
+              </label>
+            ) : null}
 
             <label>
               Password

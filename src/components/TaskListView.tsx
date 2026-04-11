@@ -8,9 +8,11 @@ type TaskListViewProps = {
   activeFilter: TaskFilter;
   groupedTasks: Array<{ priority: Task["priority"]; tasks: Task[] }>;
   hoveredTaskId: number | null;
+  createdTaskId: number | null;
   taskLoading: boolean;
   onFilterChange: (filter: TaskFilter) => void;
   onHoverChange: (taskId: number | null) => void;
+  onQuickComplete: (taskId: number) => void;
   onOpenTask: (taskId: number) => void;
   onOpenTaskModal: () => void;
   onOpenContextMenu: (taskId: number, x: number, y: number) => void;
@@ -20,9 +22,11 @@ export function TaskListView({
   activeFilter,
   groupedTasks,
   hoveredTaskId,
+  createdTaskId,
   taskLoading,
   onFilterChange,
   onHoverChange,
+  onQuickComplete,
   onOpenTask,
   onOpenTaskModal,
   onOpenContextMenu,
@@ -77,7 +81,14 @@ export function TaskListView({
                 <div className="task-list">
                   {group.tasks.map((task) => (
                     <button
-                      className={hoveredTaskId === task.id ? "task-row is-hovered" : "task-row"}
+                      className={[
+                        "task-row",
+                        hoveredTaskId === task.id ? "is-hovered" : "",
+                        task.status === "DONE" ? "is-complete" : "",
+                        createdTaskId === task.id ? "is-created" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                       key={task.id}
                       onClick={() => onOpenTask(task.id)}
                       onContextMenu={(event) => {
@@ -90,7 +101,23 @@ export function TaskListView({
                       }
                       type="button"
                     >
-                      <span className="task-row__checkbox" />
+                      <button
+                        aria-label={
+                          task.status === "DONE"
+                            ? `Move ${task.title} back to open`
+                            : `Mark ${task.title} as done`
+                        }
+                        className={
+                          task.status === "DONE"
+                            ? "task-row__checkbox is-complete"
+                            : "task-row__checkbox"
+                        }
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          onQuickComplete(task.id);
+                        }}
+                        type="button"
+                      />
                       <span className="task-row__title">{task.title}</span>
                       <span className="task-row__date">{formatDate(task.createdAt)}</span>
                     </button>

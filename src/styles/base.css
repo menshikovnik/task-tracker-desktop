@@ -82,6 +82,15 @@ button {
   animation: toastIn 0.18s ease;
 }
 
+.feedback-toast.is-closing {
+  animation: toastOut 0.18s ease forwards;
+}
+
+.feedback-toast--success {
+  border-color: rgba(74, 222, 128, 0.16);
+  background: rgba(16, 24, 20, 0.94);
+}
+
 .feedback-toast__copy strong {
   display: block;
   font-size: 13px;

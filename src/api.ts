@@ -32,6 +32,7 @@ type AuthPayload = {
 };
 
 type RegisterPayload = AuthPayload & {
+  email: string;
   confirmPassword: string;
 };
 
