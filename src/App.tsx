@@ -10,6 +10,7 @@ import {
   logoutUser,
   patchTask,
   registerUser,
+  setAccessToken,
   updateTask,
 } from "./api";
 import { EMPTY_TASK_FORM, PRIORITY_ORDER } from "./app/constants";
@@ -237,21 +238,19 @@ function App() {
 
     try {
       if (authMode === "login") {
-        await loginUser({
+        const response = await loginUser({
           username: authForm.username,
           password: authForm.password,
         });
+        setAccessToken(response.accessToken);
       } else {
-        await registerUser({
+        const response = await registerUser({
           username: authForm.username,
           email: authForm.email,
           password: authForm.password,
           confirmPassword: authForm.confirmPassword,
         });
-        await loginUser({
-          username: authForm.username,
-          password: authForm.password,
-        });
+        setAccessToken(response.accessToken);
       }
 
       setUser(authForm.username);
@@ -517,14 +516,15 @@ function App() {
   function handleAppError(error: unknown) {
     if (error instanceof Error) {
       if (error.message === "UNAUTHORIZED") {
+        setAccessToken(null);
         clearUser();
         setTasks([]);
         setSelectedTaskId(null);
-      setFeedback({
-        title: "Session expired",
-        message: "Please sign in again to continue working.",
-        tone: "error",
-      });
+        setFeedback({
+          title: "Session expired",
+          message: "Please sign in again to continue working.",
+          tone: "error",
+        });
         return;
       }
 
