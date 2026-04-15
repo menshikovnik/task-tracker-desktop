@@ -17,12 +17,17 @@ html,
 body,
 #root {
   min-height: 100%;
+  width: 100%;
   margin: 0;
+  overflow: hidden;
   background: #111113;
+  overscroll-behavior: none;
 }
 
 body {
   min-height: 100vh;
+  position: fixed;
+  inset: 0;
 }
 
 * {
@@ -244,54 +249,39 @@ select:disabled {
   animation: projectNavDotPop 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
-.auth-page-root {
-  font-family: "DM Sans", sans-serif;
+/* ── Auth page (new minimal design) ── */
+
+/* Submit button: high-contrast ghost style */
+.auth-submit-btn {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.10);
 }
 
-.auth-page-root.is-entering .auth-page-card {
-  animation: authCardLiftOut 0.82s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+.auth-submit-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.11);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.95);
 }
 
-.auth-page-root.is-entering .auth-page-grid {
-  animation: authGridDrift 0.9s ease forwards;
+.auth-submit-btn:not(:disabled):active {
+  transform: scale(0.985);
 }
 
-.auth-page-root.is-entering .auth-page-orb--primary {
-  animation: authOrbPrimaryExit 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+/* Mode cross-fade: heading + form panels */
+.auth-mode-panel {
+  animation: authModeFadeIn 150ms ease both;
 }
 
-.auth-page-root.is-entering .auth-page-orb--secondary {
-  animation: authOrbSecondaryExit 0.95s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-}
-
-.auth-page-grid {
-  background-image:
-    linear-gradient(rgba(108, 99, 255, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(108, 99, 255, 0.045) 1px, transparent 1px);
-  background-size: 48px 48px;
-}
-
-.auth-page-orb {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(70px);
-  pointer-events: none;
-}
-
-.auth-page-orb--primary {
-  top: -100px;
-  left: -80px;
-  width: 420px;
-  height: 420px;
-  background: rgba(108, 99, 255, 0.13);
-}
-
-.auth-page-orb--secondary {
-  right: -40px;
-  bottom: -60px;
-  width: 300px;
-  height: 300px;
-  background: rgba(99, 102, 241, 0.08);
+@keyframes authModeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-spinner {
@@ -650,5 +640,110 @@ select:disabled {
   to {
     opacity: 0;
     transform: translateY(3px) scale(0.985);
+  }
+}
+
+.task-context-menu {
+  animation: taskContextMenuIn 100ms cubic-bezier(0.16, 1, 0.3, 1);
+  transform-origin: top left;
+}
+
+.app-toast {
+  animation: appToastLifecycle 4000ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.command-palette {
+  animation: commandPaletteIn 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.task-layout-item {
+  will-change: transform, opacity, background-color, border-color, box-shadow;
+}
+
+.task-new-entry {
+  overflow: hidden;
+  animation:
+    taskInsertIn 260ms cubic-bezier(0.16, 1, 0.3, 1) both,
+    taskWelcomePulse 2500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: center top;
+}
+
+@keyframes taskContextMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes appToastLifecycle {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.985);
+  }
+  5% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  92% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, 4px) scale(0.99);
+  }
+}
+
+@keyframes commandPaletteIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes taskInsertIn {
+  from {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-8px) scale(0.94);
+    filter: blur(2px);
+  }
+  to {
+    max-height: 220px;
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes taskWelcomePulse {
+  0% {
+    border-color: rgba(168, 85, 247, 0.8);
+    background-color: rgba(255, 255, 255, 0.075);
+    box-shadow:
+      0 0 0 1px rgba(168, 85, 247, 0.22),
+      0 0 34px rgba(168, 85, 247, 0.25),
+      0 18px 52px rgba(88, 28, 135, 0.24);
+  }
+  60% {
+    border-color: rgba(168, 85, 247, 0.68);
+    background-color: rgba(255, 255, 255, 0.065);
+    box-shadow:
+      0 0 0 1px rgba(168, 85, 247, 0.18),
+      0 0 26px rgba(168, 85, 247, 0.18),
+      0 14px 42px rgba(88, 28, 135, 0.18);
+  }
+  100% {
+    border-color: rgba(168, 85, 247, 0);
+    background-color: rgba(255, 255, 255, 0);
+    box-shadow: none;
   }
 }

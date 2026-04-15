@@ -1,6 +1,7 @@
 import { FormEvent, PointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { FileText, Maximize2, Minimize2, Send, Trash2, X } from "lucide-react";
 import { Project, Task } from "../../../api";
+import { useShortcut } from "../../../app/useShortcut";
 import { CustomDateInput } from "../../../components/CustomDateInput";
 import { CustomSelect } from "../../../components/CustomSelect";
 import { useDebouncedTaskPatch } from "../hooks/useDebouncedTaskPatch";
@@ -123,6 +124,23 @@ export function TaskDetailPanel({
       if (savedTimeoutRef.current) window.clearTimeout(savedTimeoutRef.current);
     };
   }, []);
+
+  useShortcut(
+    { key: "Enter", mod: true, enabled: open && Boolean(currentTask), allowInEditable: true },
+    () => {
+      if (!currentTask) {
+        return;
+      }
+
+      if (title.trim() && title !== currentTask.title) {
+        void flushSave("title", { title: title.trim() });
+      }
+
+      if (description !== (currentTask.description ?? "")) {
+        void flushSave("description", { description });
+      }
+    },
+  );
 
   if (!mounted || !currentTask) return null;
 
@@ -367,4 +385,3 @@ export function TaskDetailPanel({
     </>
   );
 }
-

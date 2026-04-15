@@ -180,7 +180,7 @@ export function AppLayout({
   }
 
   return (
-    <div className="flex min-h-screen bg-[#111113] text-white">
+    <div className="flex h-screen w-screen overflow-hidden bg-[#111113] text-white">
       <div
         className="app-shell-sidebar relative overflow-hidden border-r border-white/[0.06] bg-[#111113]"
         ref={sidebarShellRef}

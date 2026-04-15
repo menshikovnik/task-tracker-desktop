@@ -1,8 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { QueryKey, useQueries, useQueryClient } from "@tanstack/react-query";
 import { Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { Search } from "lucide-react";
+import { Kbd } from "./components/Kbd";
 import { Project, Status, Task, logoutUser, normalizeApiError, setAccessToken } from "./api";
 import "./App.css";
+import { formatShortcut, getModifierKeyLabel } from "./app/platform";
+import { useShortcut } from "./app/useShortcut";
 import { useAuth } from "./auth";
 import { AuthPage } from "./components/AuthPage";
 import { NewProjectModal } from "./features/projects/components/NewProjectModal";
@@ -87,12 +91,16 @@ function ComingSoonPanel({ label }: { label: string }) {
 
 function WorkspaceView({
   allProjects,
+  onDeleteTask,
+  highlightedTaskId,
   onOpenTask,
   onOpenTaskModal,
   onQuickCreateTask,
   onToast,
 }: {
   allProjects: Project[];
+  onDeleteTask: (task: Task) => void;
+  highlightedTaskId: number | null;
   onOpenTask: (task: Task) => void;
   onOpenTaskModal: (projectId?: number, initialStatus?: Status) => void;
   onQuickCreateTask: (values: { title: string; status: Status; projectId: number | null }) => Promise<void>;
@@ -102,6 +110,9 @@ function WorkspaceView({
   const [searchParams, setSearchParams] = useSearchParams();
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"list" | "board" | "timeline">("list");
+  const [searchQuery, setSearchQuery] = useState("");
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const modifierLabel = getModifierKeyLabel();
   const tabsRef = useRef<Record<"list" | "board" | "timeline", HTMLButtonElement | null>>({
     list: null,
     board: null,
@@ -127,7 +138,16 @@ function WorkspaceView({
 
     return rawTasks;
   }, [projectId, rawTasks, todayMode]);
-  const tasks = useMemo(() => sortTasks(scopedTasks), [scopedTasks]);
+  const tasks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    const visibleTasks = query
+      ? scopedTasks.filter((task) =>
+          [task.title, task.description ?? ""].some((value) => value.toLowerCase().includes(query)),
+        )
+      : scopedTasks;
+
+    return sortTasks(visibleTasks);
+  }, [scopedTasks, searchQuery]);
 
 
   const title = project ? project.name : todayMode ? "Today" : "My tasks";
@@ -151,6 +171,35 @@ function WorkspaceView({
       opacity: 1,
     });
   }, [activeTab]);
+
+  useShortcut(
+    { key: "c" },
+    () => {
+      onOpenTaskModal(project?.id ?? undefined);
+    },
+  );
+
+  useShortcut(
+    { key: "1", mod: true },
+    () => {
+      setActiveTab("list");
+    },
+  );
+
+  useShortcut(
+    { key: "2", mod: true },
+    () => {
+      setActiveTab("board");
+    },
+  );
+
+  useShortcut(
+    { key: "/" },
+    () => {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    },
+  );
 
   if (projectId !== null && !project && !taskQuery.isLoading && !projectQuery.isLoading) {
     return (
@@ -213,6 +262,10 @@ function WorkspaceView({
         isProjectView={Boolean(project)}
         onCreateTask={() => onOpenTaskModal(project?.id)}
         onDeleteProject={project ? () => setDeleteConfirmOpen(true) : undefined}
+        onSearchChange={setSearchQuery}
+        searchInputRef={searchInputRef}
+        searchQuery={searchQuery}
+        newTaskShortcutLabel="C"
         subtitle={subtitle}
         title={title}
       />
@@ -230,7 +283,7 @@ function WorkspaceView({
           {(["list", "board", "timeline"] as const).map((tab) => (
             <button
               className={[
-                "relative z-10 px-3 py-2.5 text-[13px] transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                "relative z-10 inline-flex items-center gap-1.5 px-3 py-2.5 text-[13px] transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)]",
                 activeTab === tab ? "text-white/90" : "text-white/30 hover:text-white/60",
               ].join(" ")}
               key={tab}
@@ -239,6 +292,16 @@ function WorkspaceView({
               type="button"
             >
               {tab === "list" ? "List" : tab === "board" ? "Board" : "Timeline"}
+              {tab === "list" ? (
+                <Kbd className={activeTab === "list" ? "opacity-60" : "opacity-100"}>
+                  {formatShortcut([modifierLabel, "1"])}
+                </Kbd>
+              ) : null}
+              {tab === "board" ? (
+                <Kbd className={activeTab === "board" ? "opacity-60" : "opacity-100"}>
+                  {formatShortcut([modifierLabel, "2"])}
+                </Kbd>
+              ) : null}
             </button>
           ))}
         </div>
@@ -258,8 +321,11 @@ function WorkspaceView({
         {activeTab === "board" ? (
           <TaskBoard
             loading={taskQuery.isLoading}
+            highlightedTaskId={highlightedTaskId}
+            onDeleteTask={onDeleteTask}
             onOpenTask={handleOpenTask}
             onQuickAdd={handleQuickCreate}
+            onToast={onToast}
             tasks={tasks}
           />
         ) : activeTab === "timeline" ? (
@@ -267,8 +333,11 @@ function WorkspaceView({
         ) : (
           <TaskList
             loading={taskQuery.isLoading}
+            highlightedTaskId={highlightedTaskId}
+            onDeleteTask={onDeleteTask}
             onOpenTask={handleOpenTask}
             onQuickAdd={handleQuickCreate}
+            onToast={onToast}
             storageScope={projectId !== null ? `project:${projectId}` : todayMode ? "tasks:today" : "tasks:all"}
             tasks={tasks}
           />
@@ -306,15 +375,57 @@ function AppShell() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailMounted, setDetailMounted] = useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [newTaskProjectId, setNewTaskProjectId] = useState<number | undefined>(undefined);
   const [newTaskStatus, setNewTaskStatus] = useState<Status | undefined>(undefined);
   const [highlightedProjectId, setHighlightedProjectId] = useState<number | null>(null);
+  const [highlightedTaskId, setHighlightedTaskId] = useState<number | null>(null);
 
   const projectsQuery = useProjects();
   const allTasksQuery = useTasks();
   const createProject = useCreateProject();
   const createTask = useCreateTask();
   const pendingTaskDeleteRef = useRef<PendingTaskDelete | null>(null);
+
+  useEffect(() => {
+    function preventBrowserContextMenu(event: MouseEvent) {
+      event.preventDefault();
+    }
+
+    window.addEventListener("contextmenu", preventBrowserContextMenu);
+    return () => window.removeEventListener("contextmenu", preventBrowserContextMenu);
+  }, []);
+
+  useShortcut(
+    { key: "k", mod: true },
+    () => {
+      setCommandPaletteOpen(true);
+    },
+  );
+
+  useShortcut(
+    {
+      key: "Backspace",
+      enabled: detailOpen && Boolean(selectedTask) && !showTaskModal && !showProjectModal && !commandPaletteOpen,
+    },
+    () => {
+      if (selectedTask) {
+        handleUndoableDeleteTask(selectedTask);
+      }
+    },
+  );
+
+  useShortcut(
+    {
+      key: "Delete",
+      enabled: detailOpen && Boolean(selectedTask) && !showTaskModal && !showProjectModal && !commandPaletteOpen,
+    },
+    () => {
+      if (selectedTask) {
+        handleUndoableDeleteTask(selectedTask);
+      }
+    },
+  );
 
   function showToast(toast: Notice) {
     setNotice(toast);
@@ -385,7 +496,7 @@ function AppShell() {
               tone: "error",
             });
           });
-      }, 5000),
+      }, 4000),
     };
 
     pendingTaskDeleteRef.current = pending;
@@ -506,15 +617,12 @@ function AppShell() {
     projectId: number | null;
   }) {
     try {
-      await createTask.mutateAsync(values);
+      const task = await createTask.mutateAsync(values);
+      setHighlightedTaskId(task.id);
       closeTaskModal();
       window.setTimeout(() => {
-        setNotice({
-          title: "Task created",
-          message: `${values.title} was added to your queue.`,
-          tone: "success",
-        });
-      }, 150);
+        setHighlightedTaskId((current) => (current === task.id ? null : current));
+      }, 2600);
     } catch (error) {
       const normalized = normalizeApiError(error);
       setNotice({
@@ -527,7 +635,7 @@ function AppShell() {
 
   async function handleQuickCreateTask(values: { title: string; status: Status; projectId: number | null }) {
     try {
-      await createTask.mutateAsync({
+      const task = await createTask.mutateAsync({
         title: values.title,
         description: "",
         status: values.status,
@@ -535,6 +643,10 @@ function AppShell() {
         dueDate: null,
         projectId: values.projectId,
       });
+      setHighlightedTaskId(task.id);
+      window.setTimeout(() => {
+        setHighlightedTaskId((current) => (current === task.id ? null : current));
+      }, 2600);
     } catch (error) {
       const normalized = normalizeApiError(error);
       setNotice({
@@ -602,6 +714,8 @@ function AppShell() {
                   element={
                     <WorkspaceView
                       allProjects={projects}
+                      highlightedTaskId={highlightedTaskId}
+                      onDeleteTask={handleUndoableDeleteTask}
                       onOpenTask={openDetail}
                       onOpenTaskModal={openTaskModal}
                       onQuickCreateTask={handleQuickCreateTask}
@@ -616,6 +730,8 @@ function AppShell() {
                   element={
                     <WorkspaceView
                       allProjects={projects}
+                      highlightedTaskId={highlightedTaskId}
+                      onDeleteTask={handleUndoableDeleteTask}
                       onOpenTask={openDetail}
                       onOpenTaskModal={openTaskModal}
                       onQuickCreateTask={handleQuickCreateTask}
@@ -650,29 +766,117 @@ function AppShell() {
         projects={projects}
       />
 
+      <CommandPalette
+        onClose={() => setCommandPaletteOpen(false)}
+        onCreateTask={() => {
+          setCommandPaletteOpen(false);
+          openTaskModal();
+        }}
+        onNavigateToday={() => {
+          setCommandPaletteOpen(false);
+          navigate("/tasks?view=today");
+        }}
+        onNavigateTasks={() => {
+          setCommandPaletteOpen(false);
+          navigate("/tasks");
+        }}
+        open={commandPaletteOpen}
+      />
+
       {notice ? <Toast notice={notice} onDismiss={() => setNotice(null)} /> : null}
       {undoTaskToast ? <UndoToast toast={undoTaskToast} /> : null}
     </>
   );
 }
 
-function Toast({ notice, onDismiss }: { notice: Notice; onDismiss: () => void }) {
+function CommandPalette({
+  open,
+  onClose,
+  onCreateTask,
+  onNavigateTasks,
+  onNavigateToday,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onCreateTask: () => void;
+  onNavigateTasks: () => void;
+  onNavigateToday: () => void;
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const modifierLabel = getModifierKeyLabel();
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    window.requestAnimationFrame(() => inputRef.current?.focus());
+  }, [open]);
+
+  useShortcut({ key: "Escape", enabled: open, allowInEditable: true }, onClose);
+
+  if (!open) {
+    return null;
+  }
+
   return (
-    <div className="fixed bottom-5 right-5 z-[70] max-w-sm rounded-2xl border border-white/10 bg-[#171728] px-4 py-3 shadow-2xl">
-      <div className="flex items-start gap-3">
+    <div className="fixed inset-0 z-[110] flex items-start justify-center px-4 pt-[14vh]" onMouseDown={onClose}>
+      <div
+        className="command-palette w-full max-w-xl overflow-hidden rounded-2xl border border-white/[0.11] bg-[#111113]/95 shadow-[0_4px_6px_rgba(0,0,0,0.25),0_24px_80px_rgba(0,0,0,0.42)] backdrop-blur-2xl"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-center gap-2 border-b border-white/[0.065] px-3 py-2.5">
+          <Search size={15} strokeWidth={1.7} className="text-white/30" />
+          <input
+            className="min-w-0 flex-1 bg-transparent text-[13px] text-white/78 outline-none placeholder:text-white/28"
+            placeholder="Search Flux or run a command..."
+            ref={inputRef}
+          />
+          <Kbd>Esc</Kbd>
+        </div>
+        <div className="p-1.5">
+          <CommandPaletteItem hint="C" label="New task" onClick={onCreateTask} />
+          <CommandPaletteItem hint={`${modifierLabel} 1`} label="Open List view" onClick={onNavigateTasks} />
+          <CommandPaletteItem hint="/" label="Focus search" onClick={onClose} />
+          <CommandPaletteItem label="Today" onClick={onNavigateToday} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommandPaletteItem({ hint, label, onClick }: { hint?: string; label: string; onClick: () => void }) {
+  return (
+    <button
+      className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-[13px] text-white/64 transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.055] hover:text-white/86"
+      onClick={onClick}
+      type="button"
+    >
+      <span>{label}</span>
+      {hint ? <Kbd>{hint}</Kbd> : null}
+    </button>
+  );
+}
+
+function Toast({ notice, onDismiss }: { notice: Notice; onDismiss: () => void }) {
+  useEffect(() => {
+    const timeoutId = window.setTimeout(onDismiss, 4000);
+    return () => window.clearTimeout(timeoutId);
+  }, [notice, onDismiss]);
+
+  return (
+    <div className="app-toast fixed bottom-6 left-1/2 z-[90] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-full border border-white/10 bg-neutral-900/80 px-3 py-2 shadow-[0_18px_70px_rgba(0,0,0,0.38)] backdrop-blur-md">
+      <div className="flex items-center gap-2.5">
         <span
           className={[
-            "mt-1 h-2.5 w-2.5 rounded-full",
+            "h-1.5 w-1.5 shrink-0 rounded-full",
             notice.tone === "error" ? "bg-red-400" : "bg-emerald-400",
           ].join(" ")}
         />
-        <div className="min-w-0 flex-1">
-          <p className="font-medium text-white">{notice.title}</p>
-          <p className="mt-1 text-sm text-white/55">{notice.message}</p>
+        <div className="min-w-0">
+          <p className="truncate text-[11px] font-medium leading-4 text-white/82">{notice.title}</p>
+          <p className="max-w-[320px] truncate text-[11px] leading-4 text-white/48">{notice.message}</p>
         </div>
-        <button className="text-sm text-white/40 hover:text-white" onClick={onDismiss} type="button">
-          x
-        </button>
       </div>
     </div>
   );
@@ -680,11 +884,11 @@ function Toast({ notice, onDismiss }: { notice: Notice; onDismiss: () => void })
 
 function UndoToast({ toast }: { toast: UndoTaskToast }) {
   return (
-    <div className="task-delete-toast fixed bottom-5 left-1/2 z-[90] -translate-x-1/2 rounded-lg border border-white/[0.08] bg-[#151516]/95 px-3 py-2 shadow-[0_18px_60px_rgba(0,0,0,0.42)] backdrop-blur-md">
-      <div className="flex items-center gap-3 text-[12px]">
-        <span className="text-white/68">Task deleted.</span>
+    <div className="app-toast task-delete-toast fixed bottom-6 left-1/2 z-[90] max-w-[calc(100vw-32px)] -translate-x-1/2 rounded-full border border-white/10 bg-neutral-900/80 px-3 py-2 shadow-[0_18px_70px_rgba(0,0,0,0.38)] backdrop-blur-md">
+      <div className="flex items-center gap-3 text-[11px] leading-4">
+        <span className="whitespace-nowrap text-white/72">Task deleted</span>
         <button
-          className="rounded-md px-2 py-1 font-medium text-white/82 transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.06] hover:text-white"
+          className="rounded-full bg-white/[0.10] px-2 py-0.5 font-medium text-white/88 transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.16] hover:text-white"
           onClick={toast.onUndo}
           type="button"
         >

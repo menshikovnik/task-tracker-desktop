@@ -7,6 +7,7 @@ type TaskGroupProps = {
   count: number;
   children: ReactNode;
   defaultCollapsed?: boolean;
+  hasHighlightedTask?: boolean;
   storageScope?: string;
   status: Status;
   onQuickAdd?: (status: Status, title: string) => Promise<void> | void;
@@ -28,6 +29,7 @@ export function TaskGroup({
   count,
   children,
   defaultCollapsed = false,
+  hasHighlightedTask = false,
   storageScope = "default",
   status,
   onQuickAdd,
@@ -53,6 +55,12 @@ export function TaskGroup({
       }),
     );
   }, [collapsed, storageId]);
+
+  useEffect(() => {
+    if (hasHighlightedTask) {
+      setCollapsed(false);
+    }
+  }, [hasHighlightedTask]);
 
   return (
     <section className="space-y-1.5">

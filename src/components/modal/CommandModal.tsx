@@ -5,6 +5,7 @@ import { useDraggableModal } from "./useDraggableModal";
 export function CommandModal({
   open,
   closing,
+  closeOnEscape = true,
   eyebrow,
   title,
   children,
@@ -12,6 +13,7 @@ export function CommandModal({
 }: {
   open: boolean;
   closing: boolean;
+  closeOnEscape?: boolean;
   eyebrow: ReactNode;
   title: ReactNode;
   children: ReactNode;
@@ -24,13 +26,16 @@ export function CommandModal({
 
     function handleEscape(event: KeyboardEvent) {
       if (event.key === "Escape") {
-        onClose();
+        event.preventDefault();
+        if (closeOnEscape) {
+          onClose();
+        }
       }
     }
 
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [onClose, open]);
+  }, [closeOnEscape, onClose, open]);
 
   if (!open) {
     return null;

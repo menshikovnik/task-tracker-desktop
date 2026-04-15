@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, MouseEvent, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -10,9 +10,9 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { useDroppable, useDraggable } from "@dnd-kit/core";
-import { CSS } from "@dnd-kit/utilities";
 import { Calendar, Plus } from "lucide-react";
 import { Task } from "../../../api";
+import { TaskContextMenu } from "./TaskContextMenu";
 import { useUpdateTask } from "../hooks/useUpdateTask";
 
 // ─── Column config ────────────────────────────────────────────────────────────
@@ -56,27 +56,49 @@ function formatDueDate(input?: string | null) {
 function TaskCard({
   task,
   ghost,
+  highlighted,
   onOpen,
+  onContextMenu,
 }: {
   task: Task;
   ghost?: boolean;
+  highlighted: boolean;
   onOpen: () => void;
+  onContextMenu: (event: MouseEvent<HTMLDivElement>, task: Task) => void;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
+  const { attributes, listeners, setNodeRef, isDragging } =
     useDraggable({ id: task.id });
 
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
   const didDrag = useRef(false);
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
-  const style = transform ? { transform: CSS.Translate.toString(transform) } : undefined;
   const due = formatDueDate(task.dueDate);
   const priority = getPriority(task.priority);
   const isCancelled = task.status === "CANCELLED";
 
+  useEffect(() => {
+    if (!highlighted || !cardRef.current) {
+      return;
+    }
+
+    const rect = cardRef.current.getBoundingClientRect();
+    const outsideViewport =
+      rect.top < 0 ||
+      rect.bottom > window.innerHeight ||
+      rect.left < 0 ||
+      rect.right > window.innerWidth;
+    if (outsideViewport) {
+      cardRef.current.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    }
+  }, [highlighted]);
+
   return (
     <div
-      ref={setNodeRef}
-      style={style}
+      ref={(node) => {
+        setNodeRef(node);
+        cardRef.current = node;
+      }}
       {...listeners}
       {...attributes}
       role="button"
@@ -85,7 +107,7 @@ function TaskCard({
       onPointerDown={(e) => {
         pointerDownPos.current = { x: e.clientX, y: e.clientY };
         didDrag.current = false;
-        (listeners as Record<string, (e: React.PointerEvent) => void>)?.onPointerDown?.(e);
+        (listeners as Record<string, (event: ReactPointerEvent) => void>)?.onPointerDown?.(e);
       }}
       onPointerMove={(e) => {
         if (pointerDownPos.current) {
@@ -95,9 +117,11 @@ function TaskCard({
         }
       }}
       onClick={() => { if (!didDrag.current) onOpen(); }}
+      onContextMenu={(event) => onContextMenu(event, task)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") onOpen(); }}
       className={[
-        "group relative rounded-lg border p-2.5 select-none outline-none transition-colors duration-100",
+        "task-layout-item group relative rounded-lg border p-2.5 select-none outline-none transition-colors duration-100",
+        highlighted ? "task-new-entry task-welcome-pulse" : "",
         ghost || isDragging
           ? "border-white/[0.05] bg-white/[0.02] opacity-30"
           : isCancelled
@@ -175,18 +199,22 @@ function BoardColumn({
   column,
   tasks,
   activeId,
+  highlightedTaskId,
   isOver,
   isFocused,
   onOpen,
+  onContextMenu,
   onQuickAdd,
   onToggleFocus,
 }: {
   column: (typeof COLUMNS)[number];
   tasks: Task[];
   activeId: number | null;
+  highlightedTaskId: number | null;
   isOver: boolean;
   isFocused: boolean;
   onOpen: (task: Task) => void;
+  onContextMenu: (event: MouseEvent<HTMLDivElement>, task: Task) => void;
   onQuickAdd: (title: string) => Promise<void> | void;
   onToggleFocus: () => void;
 }) {
@@ -245,6 +273,8 @@ function BoardColumn({
             key={task.id}
             task={task}
             ghost={task.id === activeId}
+            highlighted={task.id === highlightedTaskId}
+            onContextMenu={onContextMenu}
             onOpen={() => onOpen(task)}
           />
         ))}
@@ -282,26 +312,39 @@ function BoardColumn({
 
 export function TaskBoard({
   tasks,
+  highlightedTaskId,
   loading,
+  onDeleteTask,
   onOpenTask,
   onQuickAdd,
+  onToast,
 }: {
   tasks: Task[];
+  highlightedTaskId: number | null;
   loading: boolean;
+  onDeleteTask: (task: Task) => void;
   onOpenTask: (task: Task) => void;
   onQuickAdd: (status: Task["status"], title: string) => Promise<void> | void;
+  onToast?: (toast: { title: string; message: string; tone?: "error" | "success" }) => void;
 }) {
   const updateTask = useUpdateTask();
   const [activeTaskId, setActiveTaskId] = useState<number | null>(null);
   const [overColumnId, setOverColumnId] = useState<Task["status"] | null>(null);
   const [focusedColumn, setFocusedColumn] = useState<Task["status"] | null>(null);
+  const [optimisticStatuses, setOptimisticStatuses] = useState<Record<number, Task["status"]>>({});
+  const [contextMenu, setContextMenu] = useState<{ task: Task; x: number; y: number } | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   );
 
+  const visibleTasks = tasks.map((task) => {
+    const optimisticStatus = optimisticStatuses[task.id];
+    return optimisticStatus ? { ...task, status: optimisticStatus } : task;
+  });
+
   const activeTask = activeTaskId != null
-    ? tasks.find((t) => t.id === activeTaskId) ?? null
+    ? visibleTasks.find((t) => t.id === activeTaskId) ?? null
     : null;
 
   const visibleColumns = focusedColumn
@@ -309,8 +352,19 @@ export function TaskBoard({
     : COLUMNS;
 
   const tasksByStatus = Object.fromEntries(
-    COLUMNS.map((col) => [col.id, tasks.filter((t) => t.status === col.id)]),
+    COLUMNS.map((col) => [col.id, visibleTasks.filter((t) => t.status === col.id)]),
   ) as Record<Task["status"], Task[]>;
+
+  useEffect(() => {
+    if (!highlightedTaskId || !focusedColumn) {
+      return;
+    }
+
+    const highlightedTask = visibleTasks.find((task) => task.id === highlightedTaskId);
+    if (highlightedTask && highlightedTask.status !== focusedColumn) {
+      setFocusedColumn(null);
+    }
+  }, [focusedColumn, highlightedTaskId, visibleTasks]);
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveTaskId(active.id as number);
@@ -328,7 +382,27 @@ export function TaskBoard({
     const newStatus = over.id as Task["status"];
     const task = tasks.find((t) => t.id === taskId);
     if (!task || task.status === newStatus) return;
-    updateTask.mutate({ id: taskId, payload: { status: newStatus } });
+    setOptimisticStatuses((current) => ({ ...current, [taskId]: newStatus }));
+    updateTask.mutate(
+      { id: taskId, payload: { status: newStatus } },
+      {
+        onSettled: () => {
+          setOptimisticStatuses((current) => {
+            const { [taskId]: _finishedTaskStatus, ...rest } = current;
+            return rest;
+          });
+        },
+      },
+    );
+  }
+
+  function handleTaskContextMenu(event: MouseEvent<HTMLDivElement>, task: Task) {
+    event.preventDefault();
+    setContextMenu({
+      task,
+      x: event.clientX,
+      y: event.clientY,
+    });
   }
 
   if (loading) {
@@ -353,8 +427,10 @@ export function TaskBoard({
             column={col}
             tasks={tasksByStatus[col.id]}
             activeId={activeTaskId}
+            highlightedTaskId={highlightedTaskId}
             isOver={overColumnId === col.id}
             isFocused={focusedColumn === col.id}
+            onContextMenu={handleTaskContextMenu}
             onOpen={onOpenTask}
             onQuickAdd={(title) => onQuickAdd(col.id, title)}
             onToggleFocus={() =>
@@ -364,9 +440,20 @@ export function TaskBoard({
         ))}
       </div>
 
-      <DragOverlay dropAnimation={{ duration: 180, easing: "cubic-bezier(0.16,1,0.3,1)" }}>
+      <DragOverlay dropAnimation={null}>
         {activeTask ? <TaskCardOverlay task={activeTask} /> : null}
       </DragOverlay>
+
+      {contextMenu ? (
+        <TaskContextMenu
+          onClose={() => setContextMenu(null)}
+          onDeleteTask={onDeleteTask}
+          onToast={onToast}
+          task={contextMenu.task}
+          x={contextMenu.x}
+          y={contextMenu.y}
+        />
+      ) : null}
     </DndContext>
   );
 }

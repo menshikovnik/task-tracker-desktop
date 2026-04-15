@@ -1,4 +1,6 @@
-import { Plus, Trash2 } from "lucide-react";
+import type { RefObject } from "react";
+import { Plus, Search, Trash2 } from "lucide-react";
+import { Kbd } from "../../../components/Kbd";
 
 type ProjectTopbarProps = {
   title: string;
@@ -6,6 +8,10 @@ type ProjectTopbarProps = {
   color?: string | null;
   onCreateTask: () => void;
   onDeleteProject?: () => void;
+  searchInputRef?: RefObject<HTMLInputElement | null>;
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
+  newTaskShortcutLabel?: string;
   deleteProjectLoading?: boolean;
   isProjectView: boolean;
 };
@@ -16,6 +22,10 @@ export function ProjectTopbar({
   color,
   onCreateTask,
   onDeleteProject,
+  searchInputRef,
+  searchQuery = "",
+  onSearchChange,
+  newTaskShortcutLabel,
   deleteProjectLoading = false,
   isProjectView,
 }: ProjectTopbarProps) {
@@ -36,6 +46,19 @@ export function ProjectTopbar({
 
       {/* Actions */}
       <div className="flex shrink-0 items-center gap-2">
+        {onSearchChange ? (
+          <label className="hidden h-8 items-center gap-1.5 rounded-full border border-white/[0.065] bg-white/[0.025] px-2.5 text-[12px] text-white/26 transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:border-white/[0.12] focus-within:bg-white/[0.04] md:flex">
+            <Search size={12} strokeWidth={1.7} />
+            <input
+              className="w-28 bg-transparent text-[12px] text-white/72 outline-none placeholder:text-white/24 lg:w-36"
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Search"
+              ref={searchInputRef}
+              value={searchQuery}
+            />
+            <Kbd>/</Kbd>
+          </label>
+        ) : null}
         {isProjectView && onDeleteProject && (
           <button
             className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] text-red-400/60 transition hover:bg-red-500/[0.08] hover:text-red-400 disabled:opacity-40"
@@ -54,6 +77,9 @@ export function ProjectTopbar({
         >
           <Plus size={13} strokeWidth={2} />
           New task
+          {newTaskShortcutLabel ? (
+            <Kbd className="ml-1">{newTaskShortcutLabel}</Kbd>
+          ) : null}
         </button>
       </div>
     </div>

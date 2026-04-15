@@ -1,5 +1,7 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent, KeyboardEvent } from "react";
 import { Palette } from "lucide-react";
+import { formatShortcut, getModifierKeyLabel, isModifierPressed } from "../../../app/platform";
 import { CommandModal } from "../../../components/modal/CommandModal";
 
 const PRESET_COLORS = ["#6366f1", "#f59e0b", "#10b981", "#ef4444", "#3b82f6", "#ec4899"];
@@ -18,6 +20,7 @@ export function NewProjectModal({ open, closing, loading, onClose, onSubmit }: N
   const [color, setColor] = useState(PRESET_COLORS[0]);
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
   const disabled = useMemo(() => loading || !name.trim(), [loading, name]);
+  const submitShortcutLabel = formatShortcut([getModifierKeyLabel(), "Enter"]);
 
   useEffect(() => {
     if (!descriptionRef.current) {
@@ -44,9 +47,29 @@ export function NewProjectModal({ open, closing, loading, onClose, onSubmit }: N
     setColor(PRESET_COLORS[0]);
   }
 
+  function handleFormKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    if (isModifierPressed(event)) {
+      event.preventDefault();
+      if (!disabled) {
+        event.currentTarget.requestSubmit();
+      }
+      return;
+    }
+
+    if (event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
   return (
     <CommandModal closing={closing} eyebrow="Projects" onClose={onClose} open={open} title="New Project">
-          <form onSubmit={handleSubmit}>
+          <form onKeyDown={handleFormKeyDown} onSubmit={handleSubmit}>
             <div className="px-5 py-4">
               <input
                 autoFocus
@@ -98,14 +121,14 @@ export function NewProjectModal({ open, closing, loading, onClose, onSubmit }: N
                   onClick={onClose}
                   type="button"
                 >
-                  Cancel <kbd className="text-[10px] text-white/20">esc</kbd>
+                  Cancel <kbd className="text-[10px] text-white/20">Esc</kbd>
                 </button>
                 <button
                   className="inline-flex h-7 items-center gap-1.5 rounded-md bg-white/[0.10] px-2.5 text-[12px] font-medium text-white/82 transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.14] active:duration-0 disabled:cursor-not-allowed disabled:opacity-45"
                   disabled={disabled}
                   type="submit"
                 >
-                  {loading ? "Creating" : "Create"} <kbd className="text-[10px] text-white/28">Enter</kbd>
+                  {loading ? "Creating" : "Create"} <kbd className="text-[10px] text-white/28">{submitShortcutLabel}</kbd>
                 </button>
               </div>
             </div>

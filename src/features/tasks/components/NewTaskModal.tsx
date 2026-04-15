@@ -1,6 +1,8 @@
-import { FormEvent, ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent, KeyboardEvent, ReactNode } from "react";
 import { CalendarDays, CircleDot, Flag, UserRound } from "lucide-react";
 import { Priority, Project, Status } from "../../../api";
+import { formatShortcut, getModifierKeyLabel, isModifierPressed } from "../../../app/platform";
 import { CustomDateInput } from "../../../components/CustomDateInput";
 import { CustomSelect } from "../../../components/CustomSelect";
 import { CommandModal } from "../../../components/modal/CommandModal";
@@ -38,6 +40,7 @@ export function NewTaskModal({
   const [dueDate, setDueDate] = useState("");
   const [projectId, setProjectId] = useState<string>("none");
   const descriptionRef = useRef<HTMLTextAreaElement | null>(null);
+  const submitShortcutLabel = formatShortcut([getModifierKeyLabel(), "Enter"]);
 
   useEffect(() => {
     setProjectId(initialProjectId ? String(initialProjectId) : "none");
@@ -68,8 +71,7 @@ export function NewTaskModal({
     return null;
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function submitTask() {
     await onSubmit({
       title: title.trim(),
       description: description.trim(),
@@ -87,6 +89,32 @@ export function NewTaskModal({
     setProjectId(initialProjectId ? String(initialProjectId) : "none");
   }
 
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitTask();
+  }
+
+  function handleFormKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    const shouldSubmit = isModifierPressed(event);
+    if (shouldSubmit) {
+      event.preventDefault();
+      if (!loading && title.trim()) {
+        event.currentTarget.requestSubmit();
+      }
+      return;
+    }
+
+    if (event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    event.preventDefault();
+  }
+
   return (
     <CommandModal
       closing={closing}
@@ -95,7 +123,7 @@ export function NewTaskModal({
       open={open}
       title="New Task"
     >
-        <form onSubmit={handleSubmit}>
+        <form onKeyDown={handleFormKeyDown} onSubmit={handleSubmit}>
           <div className="px-5 py-4">
             <input
               autoFocus
@@ -187,14 +215,14 @@ export function NewTaskModal({
                 onClick={onClose}
                 type="button"
               >
-                Cancel <kbd className="text-[10px] text-white/20">esc</kbd>
+                Cancel <kbd className="text-[10px] text-white/20">Esc</kbd>
               </button>
               <button
                 className="inline-flex h-7 items-center gap-1.5 rounded-md bg-white/[0.10] px-2.5 text-[12px] font-medium text-white/82 transition-colors duration-100 ease-[cubic-bezier(0.16,1,0.3,1)] hover:bg-white/[0.14] active:duration-0 disabled:cursor-not-allowed disabled:opacity-45"
                 disabled={loading || !title.trim()}
                 type="submit"
               >
-                {loading ? "Creating" : "Create"} <kbd className="text-[10px] text-white/28">Enter</kbd>
+                {loading ? "Creating" : "Create"} <kbd className="text-[10px] text-white/28">{submitShortcutLabel}</kbd>
               </button>
             </div>
           </div>
