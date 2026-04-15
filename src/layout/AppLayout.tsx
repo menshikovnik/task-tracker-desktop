@@ -24,17 +24,10 @@ export function AppLayout({
 }) {
   const location = useLocation();
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [authResolved, setAuthResolved] = useState(Boolean(restoreAccessToken()));
+  const [authResolved, setAuthResolved] = useState(false);
 
   useEffect(() => {
     let active = true;
-
-    if (restoreAccessToken()) {
-      setAuthResolved(true);
-      return () => {
-        active = false;
-      };
-    }
 
     void bootstrapSession().finally(() => {
       if (active) {

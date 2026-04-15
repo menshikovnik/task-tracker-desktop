@@ -5,13 +5,15 @@ type ProjectNavItemProps = {
   project: Project;
   count: number;
   collapsed?: boolean;
+  highlighted?: boolean;
 };
 
-export function ProjectNavItem({ project, count, collapsed = false }: ProjectNavItemProps) {
+export function ProjectNavItem({ project, count, collapsed = false, highlighted = false }: ProjectNavItemProps) {
   return (
     <NavLink
       className={({ isActive }) =>
         [
+          highlighted ? "project-nav-item--new" : "",
           "flex rounded-xl text-sm transition",
           collapsed ? "justify-center px-0 py-3" : "items-center gap-3 px-3 py-2.5",
           isActive

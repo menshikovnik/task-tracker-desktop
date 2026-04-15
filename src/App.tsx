@@ -1,4 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 import { Navigate, Route, Routes, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Project, Task, logoutUser, normalizeApiError, setAccessToken } from "./api";
 import "./App.css";
@@ -8,11 +9,14 @@ import { NewProjectModal } from "./features/projects/components/NewProjectModal"
 import { ProjectStatsBar } from "./features/projects/components/ProjectStatsBar";
 import { ProjectTopbar } from "./features/projects/components/ProjectTopbar";
 import { useCreateProject } from "./features/projects/hooks/useCreateProject";
+import { useDeleteProject } from "./features/projects/hooks/useDeleteProject";
 import { useProject } from "./features/projects/hooks/useProject";
 import { useProjects } from "./features/projects/hooks/useProjects";
+import { ConfirmDeleteModal } from "./features/tasks/components/ConfirmDeleteModal";
 import { NewTaskModal } from "./features/tasks/components/NewTaskModal";
 import { TaskList } from "./features/tasks/components/TaskList";
 import { TaskFullView } from "./features/tasks/components/TaskFullView";
+import { getAllTasks } from "./features/tasks/api/tasksApi";
 import { useCreateTask } from "./features/tasks/hooks/useCreateTask";
 import { useTasks } from "./features/tasks/hooks/useTasks";
 import { AppLayout } from "./layout/AppLayout";
@@ -73,12 +77,16 @@ function WorkspaceView({
   allProjects,
   onOpenTask,
   onOpenTaskModal,
+  onToast,
 }: {
   allProjects: Project[];
   onOpenTask: (task: Task) => void;
   onOpenTaskModal: (projectId?: number) => void;
+  onToast: (toast: Notice) => void;
 }) {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"list" | "board" | "timeline">("list");
   const tabsRef = useRef<Record<"list" | "board" | "timeline", HTMLButtonElement | null>>({
     list: null,
@@ -96,6 +104,7 @@ function WorkspaceView({
     : null;
 
   const taskQuery = useTasks(projectId ? { projectId } : {});
+  const deleteProject = useDeleteProject();
   const rawTasks = useMemo(() => taskQuery.data ?? [], [taskQuery.data]);
   const scopedTasks = useMemo(() => {
     if (todayMode && projectId === null) {
@@ -123,17 +132,6 @@ function WorkspaceView({
       ? "Tasks due today across all projects"
       : "Everything across all projects";
 
-  if (projectId !== null && !project && !taskQuery.isLoading && !projectQuery.isLoading) {
-    return (
-      <div className="flex h-full items-center justify-center">
-        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] px-8 py-10 text-center">
-          <h2 className="text-2xl font-semibold text-white">Project not found</h2>
-          <p className="mt-2 text-sm text-white/50">This project may have been archived or removed.</p>
-        </div>
-      </div>
-    );
-  }
-
   useLayoutEffect(() => {
     const activeButton = tabsRef.current[activeTab];
     const rail = tabsRailRef.current;
@@ -149,12 +147,59 @@ function WorkspaceView({
     });
   }, [activeTab]);
 
+  if (projectId !== null && !project && !taskQuery.isLoading && !projectQuery.isLoading) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <div className="rounded-[28px] border border-white/10 bg-white/[0.03] px-8 py-10 text-center">
+          <h2 className="text-2xl font-semibold text-white">Project not found</h2>
+          <p className="mt-2 text-sm text-white/50">This project may have been archived or removed.</p>
+        </div>
+      </div>
+    );
+  }
+
+  function handleOpenTask(task: Task) {
+    if (projectId !== null) {
+      onOpenTask({ ...task, projectId });
+      return;
+    }
+
+    onOpenTask(task);
+  }
+
+  async function handleDeleteProjectConfirm() {
+    if (!project) {
+      return;
+    }
+
+    try {
+      const projectName = project.name;
+      await deleteProject.mutateAsync(project.id);
+      setDeleteConfirmOpen(false);
+      navigate("/tasks", { replace: true });
+      onToast({
+        title: "Project deleted",
+        message: `${projectName} was removed.`,
+        tone: "success",
+      });
+    } catch (error) {
+      const normalized = normalizeApiError(error);
+      onToast({
+        title: "Couldn't delete project",
+        message: normalized.message,
+        tone: "error",
+      });
+    }
+  }
+
   return (
     <div className="flex h-full flex-col overflow-hidden">
       <ProjectTopbar
         color={project?.color}
+        deleteProjectLoading={deleteProject.isPending}
         isProjectView={Boolean(project)}
         onCreateTask={() => onOpenTaskModal(project?.id)}
+        onDeleteProject={project ? () => setDeleteConfirmOpen(true) : undefined}
         subtitle={subtitle}
         title={title}
       />
@@ -208,9 +253,28 @@ function WorkspaceView({
         ) : activeTab === "timeline" ? (
           <ComingSoonPanel label="Timeline" />
         ) : (
-          <TaskList loading={taskQuery.isLoading} onOpenTask={onOpenTask} tasks={tasks} />
+          <TaskList
+            loading={taskQuery.isLoading}
+            onOpenTask={handleOpenTask}
+            storageScope={projectId !== null ? `project:${projectId}` : todayMode ? "tasks:today" : "tasks:all"}
+            tasks={tasks}
+          />
         )}
       </div>
+
+      <ConfirmDeleteModal
+        confirmLabel="Delete project"
+        loading={deleteProject.isPending}
+        message={
+          project
+            ? `This will permanently remove "${project.name}" and refresh the workspace.`
+            : "This action cannot be undone."
+        }
+        onCancel={() => setDeleteConfirmOpen(false)}
+        onConfirm={() => void handleDeleteProjectConfirm()}
+        open={deleteConfirmOpen}
+        title="Delete project?"
+      />
     </div>
   );
 }
@@ -228,6 +292,7 @@ function AppShell() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailMounted, setDetailMounted] = useState(false);
   const [newTaskProjectId, setNewTaskProjectId] = useState<number | undefined>(undefined);
+  const [highlightedProjectId, setHighlightedProjectId] = useState<number | null>(null);
 
   const projectsQuery = useProjects();
   const allTasksQuery = useTasks();
@@ -296,6 +361,7 @@ function AppShell() {
   async function handleCreateProject(values: { name: string; description: string; color: string }) {
     try {
       const project = await createProject.mutateAsync(values);
+      setHighlightedProjectId(project.id);
       closeProjectModal();
       window.setTimeout(() => {
         navigate(`/projects/${project.id}`);
@@ -305,6 +371,9 @@ function AppShell() {
           tone: "success",
         });
       }, 180);
+      window.setTimeout(() => {
+        setHighlightedProjectId((current) => (current === project.id ? null : current));
+      }, 1200);
     } catch (error) {
       const normalized = normalizeApiError(error);
       setNotice({
@@ -345,6 +414,25 @@ function AppShell() {
 
   const projects = projectsQuery.data ?? [];
   const allTasks = allTasksQuery.data ?? [];
+  const projectTaskQueries = useQueries({
+    queries: projects.map((project) => ({
+      queryKey: ["tasks", { projectId: project.id }],
+      queryFn: () => getAllTasks({ projectId: project.id }),
+      staleTime: 15_000,
+    })),
+  });
+  const projectTaskCounts = useMemo(() => {
+    return projects.reduce<Record<number, number>>((counts, project, index) => {
+      const projectTasks = projectTaskQueries[index]?.data;
+      if (projectTasks) {
+        counts[project.id] = projectTasks.length;
+        return counts;
+      }
+
+      counts[project.id] = allTasks.filter((task) => task.projectId === project.id).length;
+      return counts;
+    }, {});
+  }, [allTasks, projectTaskQueries, projects]);
 
   return (
     <>
@@ -365,9 +453,11 @@ function AppShell() {
                   onLogout={() => void handleLogout()}
                   onOpenNewProject={openProjectModal}
                   onToggleArchived={() => setShowArchived((current) => !current)}
+                  projectTaskCounts={projectTaskCounts}
                   projects={projects}
                   showArchived={showArchived}
                   user={user ?? "Workspace"}
+                  highlightedProjectId={highlightedProjectId}
                 />
               }
             >
@@ -379,17 +469,20 @@ function AppShell() {
                       allProjects={projects}
                       onOpenTask={openDetail}
                       onOpenTaskModal={openTaskModal}
+                      onToast={showToast}
                     />
                   }
                   path="/tasks"
                 />
                 <Route element={<TaskFullView onToast={showToast} />} path="/tasks/:taskId" />
+                <Route element={<TaskFullView onToast={showToast} />} path="/projects/:projectId/tasks/:taskId" />
                 <Route
                   element={
                     <WorkspaceView
                       allProjects={projects}
                       onOpenTask={openDetail}
                       onOpenTaskModal={openTaskModal}
+                      onToast={showToast}
                     />
                   }
                   path="/projects/:projectId"

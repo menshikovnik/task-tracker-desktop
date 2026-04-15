@@ -8,7 +8,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { Priority, Status } from "../api";
-import { Project, ProjectFormState, TaskFilter, TaskFormState } from "./types";
+import { ProjectFormState, TaskFilter, TaskFormState } from "./types";
 
 export const FILTERS: Array<{ key: TaskFilter; label: string }> = [
   { key: "ALL", label: "All" },
@@ -63,33 +63,6 @@ export const PROJECT_FILTER_OPTIONS: Array<{
 }> = [
   { key: "ALL", label: "All projects", icon: FolderKanban },
   { key: "NONE", label: "Without project", icon: MinusCircle },
-];
-
-export const STUB_PROJECTS: Project[] = [
-  {
-    id: 101,
-    name: "Desktop polish",
-    description: "Refresh the desktop workspace and interaction details.",
-    color: "#5b8def",
-    isArchived: false,
-    createdAt: "2026-04-10T09:00:00.000Z",
-  },
-  {
-    id: 102,
-    name: "Spring sync",
-    description: "Prepare backend endpoints and payloads for project binding.",
-    color: "#f97316",
-    isArchived: false,
-    createdAt: "2026-04-11T11:30:00.000Z",
-  },
-  {
-    id: 103,
-    name: "Old onboarding",
-    description: "Legacy onboarding cleanup kept for history.",
-    color: "#10b981",
-    isArchived: true,
-    createdAt: "2026-04-01T14:20:00.000Z",
-  },
 ];
 
 export const TITLE_BY_FILTER: Record<TaskFilter, string> = {

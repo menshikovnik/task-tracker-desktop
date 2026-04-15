@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, PointerEvent, useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Priority, Project, Status } from "../../../api";
 import { CustomDateInput } from "../../../components/CustomDateInput";
@@ -34,13 +34,99 @@ export function NewTaskModal({
   const [priority, setPriority] = useState<Priority>("MEDIUM");
   const [dueDate, setDueDate] = useState("");
   const [projectId, setProjectId] = useState<string>("none");
+  const modalShellRef = useRef<HTMLDivElement | null>(null);
+  const dragRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    originX: number;
+    originY: number;
+  } | null>(null);
+  const offsetRef = useRef({ x: 0, y: 0 });
+  const nextOffsetRef = useRef({ x: 0, y: 0 });
+  const animationFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     setProjectId(initialProjectId ? String(initialProjectId) : "none");
   }, [initialProjectId, open]);
 
+  useEffect(() => {
+    if (open) {
+      offsetRef.current = { x: 0, y: 0 };
+      nextOffsetRef.current = { x: 0, y: 0 };
+      if (modalShellRef.current) {
+        modalShellRef.current.style.transform = "translate3d(0px, 0px, 0)";
+      }
+    }
+  }, [open]);
+
+  useEffect(() => {
+    function commitDragFrame() {
+      animationFrameRef.current = null;
+      const nextOffset = nextOffsetRef.current;
+      offsetRef.current = nextOffset;
+      if (modalShellRef.current) {
+        modalShellRef.current.style.transform = `translate3d(${nextOffset.x}px, ${nextOffset.y}px, 0)`;
+      }
+    }
+
+    function handlePointerMove(event: globalThis.PointerEvent) {
+      const drag = dragRef.current;
+      if (!drag || event.pointerId !== drag.pointerId) {
+        return;
+      }
+
+      nextOffsetRef.current = {
+        x: drag.originX + event.clientX - drag.startX,
+        y: drag.originY + event.clientY - drag.startY,
+      };
+
+      if (animationFrameRef.current === null) {
+        animationFrameRef.current = window.requestAnimationFrame(commitDragFrame);
+      }
+    }
+
+    function handlePointerUp(event: globalThis.PointerEvent) {
+      if (dragRef.current?.pointerId === event.pointerId) {
+        dragRef.current = null;
+        if (animationFrameRef.current !== null) {
+          window.cancelAnimationFrame(animationFrameRef.current);
+          commitDragFrame();
+        }
+      }
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
+
   if (!open) {
     return null;
+  }
+
+  function handleDragStart(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) {
+      return;
+    }
+
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: offsetRef.current.x,
+      originY: offsetRef.current.y,
+    };
+    event.preventDefault();
+    event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -63,10 +149,17 @@ export function NewTaskModal({
   }
 
   return (
-    <div className={`modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-6 backdrop-blur-sm${closing ? " is-closing" : ""}`}>
-      <div className={`modal-surface w-full max-w-2xl rounded-[28px] border border-white/10 bg-[#151525] p-6 shadow-2xl${closing ? " is-closing" : ""}`}>
+    <div className={`modal-overlay fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-6 py-10 pb-[340px] backdrop-blur-sm${closing ? " is-closing" : ""}`}>
+      <div
+        className="w-full max-w-2xl"
+        ref={modalShellRef}
+      >
+        <div className={`modal-surface w-full rounded-[28px] border border-white/10 bg-[#151525] p-6 shadow-2xl${closing ? " is-closing" : ""}`}>
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div
+            className="min-w-0 flex-1 touch-none select-none cursor-grab active:cursor-grabbing"
+            onPointerDown={handleDragStart}
+          >
             <p className="text-xs uppercase tracking-[0.24em] text-white/35">Tasks</p>
             <h2 className="mt-2 text-2xl font-semibold text-white">Capture the next step</h2>
           </div>
@@ -170,6 +263,7 @@ export function NewTaskModal({
             </button>
           </div>
         </form>
+        </div>
       </div>
     </div>
   );

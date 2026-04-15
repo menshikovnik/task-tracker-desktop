@@ -1,10 +1,12 @@
-import { ChevronDown, Filter, Plus, Rows3 } from "lucide-react";
+import { ChevronDown, Filter, Plus, Rows3, Trash2 } from "lucide-react";
 
 type ProjectTopbarProps = {
   title: string;
   subtitle: string;
   color?: string | null;
   onCreateTask: () => void;
+  onDeleteProject?: () => void;
+  deleteProjectLoading?: boolean;
   isProjectView: boolean;
 };
 
@@ -13,6 +15,8 @@ export function ProjectTopbar({
   subtitle,
   color,
   onCreateTask,
+  onDeleteProject,
+  deleteProjectLoading = false,
   isProjectView,
 }: ProjectTopbarProps) {
   return (
@@ -31,6 +35,17 @@ export function ProjectTopbar({
       </div>
 
       <div className="ml-auto flex flex-wrap items-center gap-2">
+        {isProjectView && onDeleteProject ? (
+          <button
+            className="inline-flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-sm text-red-300 transition hover:border-red-500/35 hover:bg-red-500/15 hover:text-red-200 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={deleteProjectLoading}
+            onClick={onDeleteProject}
+            type="button"
+          >
+            <Trash2 size={14} />
+            {deleteProjectLoading ? "Deleting..." : "Delete"}
+          </button>
+        ) : null}
         <button className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70 transition hover:bg-white/10 hover:text-white" type="button">
           <Filter size={14} />
           Filter

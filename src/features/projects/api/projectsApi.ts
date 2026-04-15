@@ -14,8 +14,22 @@ export type CreateProjectPayload = {
 
 export type UpdateProjectPayload = Partial<CreateProjectPayload & { archived: boolean }>;
 
+type ProjectResponse = Omit<Project, "archived"> & {
+  archived?: boolean;
+  isArchived?: boolean;
+};
+
+function normalizeProject(project: ProjectResponse): Project {
+  return {
+    ...project,
+    description: project.description ?? null,
+    color: project.color ?? null,
+    archived: project.archived ?? project.isArchived ?? false,
+  };
+}
+
 export async function getProjects({ page = 0, size = 100, archived }: ProjectsQuery = {}) {
-  const response = await apiClient.get<PageResponse<Project>>("/projects", {
+  const response = await apiClient.get<PageResponse<ProjectResponse>>("/projects", {
     params: {
       page,
       size,
@@ -23,7 +37,10 @@ export async function getProjects({ page = 0, size = 100, archived }: ProjectsQu
     },
   });
 
-  return response.data;
+  return {
+    ...response.data,
+    content: response.data.content.map(normalizeProject),
+  };
 }
 
 export async function getAllProjects() {
@@ -43,13 +60,13 @@ export async function getAllProjects() {
 }
 
 export async function getProject(id: number) {
-  const response = await apiClient.get<Project>(`/projects/${id}`);
-  return response.data;
+  const response = await apiClient.get<ProjectResponse>(`/projects/${id}`);
+  return normalizeProject(response.data);
 }
 
 export async function createProject(payload: CreateProjectPayload) {
-  const response = await apiClient.post<Project | undefined>("/projects", payload);
-  const createdProject = response.data;
+  const response = await apiClient.post<ProjectResponse | undefined>("/projects", payload);
+  const createdProject = response.data ? normalizeProject(response.data) : undefined;
   const createdId = createdProject?.id ?? extractCreatedIdFromLocation(response.headers.location);
 
   if (createdProject) {

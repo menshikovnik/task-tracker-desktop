@@ -13,11 +13,10 @@ export type CreateTaskPayload = {
   description: string;
   priority: Priority;
   status: Status;
-  projectId?: number | null;
-  dueDate?: string | null;
+  projectId: number | null;
 };
 
-export type UpdateTaskPayload = Partial<CreateTaskPayload>;
+export type UpdateTaskPayload = Partial<CreateTaskPayload & { dueDate: string | null }>;
 
 export async function getTasks({ page = 0, size = 100, projectId, status, priority }: TaskFilters = {}) {
   const response = await apiClient.get<PageResponse<Task>>("/tasks", {
@@ -50,7 +49,13 @@ export async function getAllTasks(filters: Omit<TaskFilters, "page"> = {}) {
 }
 
 export async function createTask(payload: CreateTaskPayload) {
-  const response = await apiClient.post<Task>("/tasks", payload);
+  const response = await apiClient.post<Task>("/tasks", {
+    title: payload.title,
+    description: payload.description,
+    priority: payload.priority,
+    status: payload.status,
+    projectId: payload.projectId,
+  });
   return response.data;
 }
 

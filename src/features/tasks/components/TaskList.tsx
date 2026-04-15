@@ -13,10 +13,12 @@ export function TaskList({
   tasks,
   loading,
   onOpenTask,
+  storageScope = "default",
 }: {
   tasks: Task[];
   loading: boolean;
   onOpenTask: (task: Task) => void;
+  storageScope?: string;
 }) {
   if (loading) {
     return <div className="p-6 text-sm text-white/50">Loading tasks...</div>;
@@ -35,7 +37,12 @@ export function TaskList({
         }
 
         return (
-          <TaskGroup count={groupTasks.length} key={group.key} title={group.label}>
+          <TaskGroup
+            count={groupTasks.length}
+            key={`${storageScope}:${group.key}`}
+            storageScope={storageScope}
+            title={group.label}
+          >
             {groupTasks.map((task) => (
               <TaskRow key={task.id} onOpen={() => onOpenTask(task)} task={task} />
             ))}

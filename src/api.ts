@@ -113,7 +113,7 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const path = originalRequest?.url ?? "";
 
-    if (status !== 401 || !originalRequest || (originalRequest as { _retry?: boolean })._retry) {
+    if ((status !== 401 && status !== 403) || !originalRequest || (originalRequest as { _retry?: boolean })._retry) {
       throw normalizeApiError(error);
     }
 
@@ -162,10 +162,6 @@ export async function refreshAccessToken() {
 }
 
 export async function bootstrapSession() {
-  if (restoreAccessToken()) {
-    return restoreAccessToken();
-  }
-
   return refreshAccessToken();
 }
 

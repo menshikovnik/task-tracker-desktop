@@ -186,8 +186,7 @@ export function ProjectManagerModal({
               {editingProjectId ? "Save project" : "Create project"}
             </button>
             <p className="project-manager__note">
-              Projects are local UI placeholders for now, so you can shape the UX before the backend
-              endpoints land.
+              Projects are stored through the backend API and synced with your workspace.
             </p>
           </form>
         </div>

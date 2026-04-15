@@ -30,16 +30,20 @@ export function Sidebar({
   onToggleArchived,
   onOpenNewProject,
   onLogout,
+  highlightedProjectId,
+  projectTaskCounts,
 }: {
   user: string;
   projects: Project[];
   allTasks: Task[];
+  projectTaskCounts?: Record<number, number>;
   collapsed?: boolean;
   showArchived: boolean;
   onToggleCollapsed?: () => void;
   onToggleArchived: () => void;
   onOpenNewProject: () => void;
   onLogout: () => void;
+  highlightedProjectId?: number | null;
 }) {
   const location = useLocation();
 
@@ -150,7 +154,8 @@ export function Sidebar({
             {activeProjects.map((project) => (
               <ProjectNavItem
                 collapsed={collapsed}
-                count={projectCounts[project.id] ?? 0}
+                count={projectTaskCounts?.[project.id] ?? projectCounts[project.id] ?? 0}
+                highlighted={project.id === highlightedProjectId}
                 key={project.id}
                 project={project}
               />
@@ -190,7 +195,8 @@ export function Sidebar({
                   {archivedProjects.map((project) => (
                     <ProjectNavItem
                       collapsed={collapsed}
-                      count={projectCounts[project.id] ?? 0}
+                      count={projectTaskCounts?.[project.id] ?? projectCounts[project.id] ?? 0}
+                      highlighted={project.id === highlightedProjectId}
                       key={project.id}
                       project={project}
                     />

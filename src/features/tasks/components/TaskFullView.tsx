@@ -97,7 +97,8 @@ function fileColor(ext: Attachment["ext"]) {
 
 export function TaskFullView({ onToast }: { onToast: ToastHandler }) {
   const navigate = useNavigate();
-  const { taskId } = useParams();
+  const { projectId, taskId } = useParams();
+  const routeProjectId = projectId ? Number(projectId) : null;
   const numericTaskId = taskId ? Number(taskId) : null;
   const { data: task, error, isLoading } = useTask(numericTaskId);
   const { data: projects = [] } = useProjects();
@@ -159,9 +160,13 @@ export function TaskFullView({ onToast }: { onToast: ToastHandler }) {
   const savedTimeoutRef = useRef<number | null>(null);
 
   const project = useMemo(
-    () => (task?.projectId ? projects.find((item) => item.id === task.projectId) ?? null : null),
-    [projects, task],
+    () => {
+      const effectiveProjectId = routeProjectId ?? task?.projectId ?? null;
+      return effectiveProjectId ? projects.find((item) => item.id === effectiveProjectId) ?? null : null;
+    },
+    [projects, routeProjectId, task],
   );
+  const parentPath = project ? `/projects/${project.id}` : "/tasks";
 
   const attachments = useMemo<Attachment[]>(
     () => [
@@ -251,13 +256,13 @@ export function TaskFullView({ onToast }: { onToast: ToastHandler }) {
       message: "The task was removed from your workspace.",
       tone: "success",
     });
-    navigate("/tasks");
+    navigate(parentPath);
   }
 
   function closeWorkspace() {
     setIsClosing(true);
     window.setTimeout(() => {
-      navigate("/tasks");
+      navigate(parentPath);
     }, 220);
   }
 
@@ -297,18 +302,15 @@ export function TaskFullView({ onToast }: { onToast: ToastHandler }) {
           <div className="flex items-center justify-between gap-4">
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2 text-sm text-white/35">
-                <Link className="transition hover:text-white/70" to="/tasks">
-                  My tasks
+                <Link
+                  className="inline-flex items-center gap-2 transition hover:text-white/80"
+                  to={parentPath}
+                >
+                  {project ? (
+                    <span className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color || "#888888" }} />
+                  ) : null}
+                  {project?.name ?? "My tasks"}
                 </Link>
-                {project ? (
-                  <>
-                    <span>/</span>
-                    <Link className="inline-flex items-center gap-2 transition hover:text-white/80" to={`/projects/${project.id}`}>
-                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: project.color || "#888888" }} />
-                      {project.name}
-                    </Link>
-                  </>
-                ) : null}
                 <span>/</span>
                 <span className="truncate text-white/55">{truncatedTitle}</span>
               </div>

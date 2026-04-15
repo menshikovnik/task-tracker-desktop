@@ -1,15 +1,53 @@
 import { ChevronRight } from "lucide-react";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 
 type TaskGroupProps = {
   title: string;
   count: number;
   children: ReactNode;
   defaultCollapsed?: boolean;
+  storageScope?: string;
 };
 
-export function TaskGroup({ title, count, children, defaultCollapsed = true }: TaskGroupProps) {
-  const [collapsed, setCollapsed] = useState(defaultCollapsed);
+const TASK_GROUP_STORAGE_KEY = "task-group-collapsed";
+
+function readCollapsedState() {
+  try {
+    const storedValue = window.localStorage.getItem(TASK_GROUP_STORAGE_KEY);
+    return storedValue ? (JSON.parse(storedValue) as Record<string, boolean>) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function TaskGroup({
+  title,
+  count,
+  children,
+  defaultCollapsed = false,
+  storageScope = "default",
+}: TaskGroupProps) {
+  const storageId = `${storageScope}:${title}`;
+  const [collapsed, setCollapsed] = useState(() => {
+    const collapsedState = readCollapsedState();
+    return collapsedState[storageId] ?? defaultCollapsed;
+  });
+
+  useEffect(() => {
+    const collapsedState = readCollapsedState();
+    setCollapsed(collapsedState[storageId] ?? defaultCollapsed);
+  }, [defaultCollapsed, storageId]);
+
+  useEffect(() => {
+    const collapsedState = readCollapsedState();
+    window.localStorage.setItem(
+      TASK_GROUP_STORAGE_KEY,
+      JSON.stringify({
+        ...collapsedState,
+        [storageId]: collapsed,
+      }),
+    );
+  }, [collapsed, storageId]);
 
   return (
     <section className="space-y-3">

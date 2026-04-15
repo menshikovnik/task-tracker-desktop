@@ -185,9 +185,13 @@ export function TaskDetailPanel({
   }
 
   function openFullView() {
+    const fullViewPath = currentProject
+      ? `/projects/${currentProject.id}/tasks/${taskItem.id}`
+      : `/tasks/${taskItem.id}`;
+
     onClose();
     window.setTimeout(() => {
-      navigate(`/tasks/${taskItem.id}`);
+      navigate(fullViewPath);
     }, 220);
   }
 
